@@ -18,6 +18,10 @@ class TransactionItemResource extends Resource
 {
     protected static ?string $model = TransactionItem::class;
 
+    protected static ?string $navigationParentItem = 'Transactions';
+
+    protected static string|\UnitEnum|null $navigationGroup = 'Management';
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::Square3Stack3d;
 
     protected static ?string $recordTitleAttribute = 'Transaction Item';

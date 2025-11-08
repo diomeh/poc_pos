@@ -18,6 +18,8 @@ class ProductResource extends Resource
 {
     protected static ?string $model = Product::class;
 
+    protected static string|\UnitEnum|null $navigationGroup = 'Management';
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::RectangleGroup;
 
     protected static ?string $recordTitleAttribute = 'Product';
