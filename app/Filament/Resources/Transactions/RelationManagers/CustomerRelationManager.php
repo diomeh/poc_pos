@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Transactions\RelationManagers;
 
 use App\Filament\Resources\Customers\CustomerResource;
-use Filament\Actions\CreateAction;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Table;
 

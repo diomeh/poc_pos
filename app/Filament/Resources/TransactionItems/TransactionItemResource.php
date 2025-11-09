@@ -8,13 +8,13 @@ use App\Filament\Resources\TransactionItems\Pages\ViewTransactionItem;
 use App\Filament\Resources\TransactionItems\Schemas\TransactionItemForm;
 use App\Filament\Resources\TransactionItems\Schemas\TransactionItemInfolist;
 use App\Filament\Resources\TransactionItems\Tables\TransactionItemsTable;
-use App\Filament\Resources\Users\RelationManagers\TransactionsRelationManager;
 use App\Models\TransactionItem;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use UnitEnum;
 
 class TransactionItemResource extends Resource
 {
@@ -22,7 +22,7 @@ class TransactionItemResource extends Resource
 
     protected static ?string $navigationParentItem = 'Transactions';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Management';
+    protected static string|UnitEnum|null $navigationGroup = 'Management';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::Square3Stack3d;
 

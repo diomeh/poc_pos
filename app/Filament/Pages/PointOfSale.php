@@ -318,7 +318,7 @@ class PointOfSale extends Page implements HasForms
 
     public function getPaymentMethods(): array
     {
-        return collect(PaymentMethod::cases())->reduce(function ($carry, $method) {;
+        return collect(PaymentMethod::cases())->reduce(function ($carry, $method) {
             $carry[$method->value] = $method->getLabel();
             return $carry;
         }, []);

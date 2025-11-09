@@ -1,3 +1,4 @@
+@php use App\Enums\PaymentMethod; @endphp
 <x-filament-panels::page>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
         <!-- Left Side - Product Selection & Cart -->
@@ -268,13 +269,13 @@
                     </div>
 
                     <!-- Render Selected Payment Component -->
-                    @if($paymentMethod === \App\Enums\PaymentMethod::Cash->value)
+                    @if($paymentMethod === PaymentMethod::Cash->value)
                         <x-filament.payment-methods.cash :total="$total" :amountPaid="$amountPaid" :change="$change"/>
-                    @elseif($paymentMethod === \App\Enums\PaymentMethod::CreditCard->value)
+                    @elseif($paymentMethod === PaymentMethod::CreditCard->value)
                         <x-filament.payment-methods.card :amountPaid="$amountPaid" :paymentReference="$paymentReference"/>
-                    @elseif($paymentMethod === \App\Enums\PaymentMethod::BankTransfer->value)
+                    @elseif($paymentMethod === PaymentMethod::BankTransfer->value)
                         <x-filament.payment-methods.bank-transfer :amountPaid="$amountPaid" :paymentReference="$paymentReference"/>
-                    @elseif($paymentMethod === \App\Enums\PaymentMethod::PayPal->value)
+                    @elseif($paymentMethod === PaymentMethod::PayPal->value)
                         <x-filament.payment-methods.paypal :amountPaid="$amountPaid" :paymentReference="$paymentReference"/>
                     @endif
 
