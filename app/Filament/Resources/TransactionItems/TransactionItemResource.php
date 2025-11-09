@@ -2,11 +2,13 @@
 
 namespace App\Filament\Resources\TransactionItems;
 
+use App\Filament\Resources\Payments\RelationManagers\TransactionRelationManager;
 use App\Filament\Resources\TransactionItems\Pages\ListTransactionItems;
 use App\Filament\Resources\TransactionItems\Pages\ViewTransactionItem;
 use App\Filament\Resources\TransactionItems\Schemas\TransactionItemForm;
 use App\Filament\Resources\TransactionItems\Schemas\TransactionItemInfolist;
 use App\Filament\Resources\TransactionItems\Tables\TransactionItemsTable;
+use App\Filament\Resources\Users\RelationManagers\TransactionsRelationManager;
 use App\Models\TransactionItem;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -44,7 +46,7 @@ class TransactionItemResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            TransactionRelationManager::class,
         ];
     }
 

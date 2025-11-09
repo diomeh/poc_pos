@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Payments;
 
 use App\Filament\Resources\Payments\Pages\ListPayments;
 use App\Filament\Resources\Payments\Pages\ViewPayment;
+use App\Filament\Resources\Payments\RelationManagers\TransactionRelationManager;
 use App\Filament\Resources\Payments\Schemas\PaymentForm;
 use App\Filament\Resources\Payments\Schemas\PaymentInfolist;
 use App\Filament\Resources\Payments\Tables\PaymentsTable;
@@ -42,7 +43,7 @@ class PaymentResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            TransactionRelationManager::class,
         ];
     }
 

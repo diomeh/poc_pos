@@ -4,6 +4,10 @@ namespace App\Filament\Resources\Transactions;
 
 use App\Filament\Resources\Transactions\Pages\ListTransactions;
 use App\Filament\Resources\Transactions\Pages\ViewTransaction;
+use App\Filament\Resources\Transactions\RelationManagers\CashierRelationManager;
+use App\Filament\Resources\Transactions\RelationManagers\CustomerRelationManager;
+use App\Filament\Resources\Transactions\RelationManagers\ItemsRelationManager;
+use App\Filament\Resources\Transactions\RelationManagers\PaymentRelationManager;
 use App\Filament\Resources\Transactions\Schemas\TransactionForm;
 use App\Filament\Resources\Transactions\Schemas\TransactionInfolist;
 use App\Filament\Resources\Transactions\Tables\TransactionsTable;
@@ -42,7 +46,10 @@ class TransactionResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            ItemsRelationManager::class,
+            CustomerRelationManager::class,
+            CashierRelationManager::class,
+            PaymentRelationManager::class,
         ];
     }
 
