@@ -33,6 +33,11 @@ class DatabaseSeeder extends Seeder
             'category_id' => $categories->random()->id,
         ])->create();
 
+        $result = $this->command->ask('Do you want to seed transactions and transaction items? (Yes/No)', 'no');
+        if (!in_array(strtolower($result), ['yes', 'y'])) {
+            return;
+        }
+
         $payments = Payment::factory(30)->create();
 
         $transactions = Transaction::factory(30)->state(fn() => [

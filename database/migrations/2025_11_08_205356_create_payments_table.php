@@ -11,7 +11,7 @@ return new class extends Migration {
             $table->id();
             $table->integer('method');
             $table->decimal('amount');
-            $table->string('reference');
+            $table->string('reference')->nullable();
             $table->integer('status');
             $table->timestamps();
         });

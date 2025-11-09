@@ -22,19 +22,19 @@ class TransactionStats extends StatsOverviewWidget
         $getCount = fn($collection, $key) => intval($collection[$key] ?? 0);
 
         return [
-            Stat::make(TransactionStatus::COMPLETED->getLabel(), $getCount($statusCounts, TransactionStatus::COMPLETED->value))
+            Stat::make(TransactionStatus::Completed->getLabel(), $getCount($statusCounts, TransactionStatus::Completed->value))
                 ->description('Successfully completed transactions')
-                ->color(TransactionStatus::COMPLETED->getColor())
+                ->color(TransactionStatus::Completed->getColor())
                 ->icon(Heroicon::CheckCircle),
 
-            Stat::make(TransactionStatus::PENDING->getLabel(), $getCount($statusCounts, TransactionStatus::PENDING->value))
+            Stat::make(TransactionStatus::Pending->getLabel(), $getCount($statusCounts, TransactionStatus::Pending->value))
                 ->description('Awaiting payment or confirmation')
-                ->color(TransactionStatus::PENDING->getColor())
+                ->color(TransactionStatus::Pending->getColor())
                 ->icon(Heroicon::Clock),
 
-            Stat::make(TransactionStatus::FAILED->getLabel(), $getCount($statusCounts, TransactionStatus::FAILED->value))
+            Stat::make(TransactionStatus::Failed->getLabel(), $getCount($statusCounts, TransactionStatus::Failed->value))
                 ->description('Failed or canceled transactions')
-                ->color(TransactionStatus::FAILED->getColor())
+                ->color(TransactionStatus::Failed->getColor())
                 ->icon(Heroicon::XCircle),
         ];
     }
