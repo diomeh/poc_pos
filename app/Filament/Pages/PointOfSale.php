@@ -24,26 +24,25 @@ class PointOfSale extends Page implements HasForms
 {
     use InteractsWithForms;
 
-    protected static string|null|BackedEnum $navigationIcon = Heroicon::ShoppingCart;
-    protected string $view = 'filament.pages.point-of-sale';
-    protected static ?string $navigationLabel = 'Point of Sale';
-    protected static ?string $title = 'Point of Sale';
+    protected static string|null|BackedEnum $navigationIcon  = Heroicon::ShoppingCart;
+    protected string                        $view            = 'filament.pages.point-of-sale';
+    protected static ?string                $navigationLabel = 'Point of Sale';
+    protected static ?string                $title           = 'Point of Sale';
 
     // Properties
     public string $search = '';
-    public array $cart = [];
-    
+    public array  $cart   = [];
+
     // Math properties initialized to float to prevent type issues
-    public float $subtotal = 0.00;
-    public float $tax = 0.00;
-    public float $taxRate = 0.10; // 10%
-    public float $discount = 0.00;
-    public float $total = 0.00;
-    public float $amountPaid = 0.00;
-    public float $change = 0.00;
-    
-    public string $paymentMethod = PaymentMethod::Cash->value;
-    public ?int $customerId = null;
+    public float  $subtotal         = 0.00;
+    public float  $tax              = 0.00;
+    public float  $taxRate          = 0.10; // 10%
+    public float  $discount         = 0.00;
+    public float  $total            = 0.00;
+    public float  $amountPaid       = 0.00;
+    public float  $change           = 0.00;
+    public int    $paymentMethod    = PaymentMethod::Cash->value;
+    public ?int   $customerId       = null;
     public string $paymentReference = '';
 
     // Listeners
@@ -56,7 +55,7 @@ class PointOfSale extends Page implements HasForms
         $this->calculateTotals();
     }
 
-    /* 
+    /*
      * -----------------------------------------------------------------
      *  LIFECYCLE HOOKS (The Fix)
      *  These run automatically when wire:model updates these properties.
@@ -93,7 +92,7 @@ class PointOfSale extends Page implements HasForms
             ->where('is_active', true)
             ->where(function ($query) {
                 $query->where('name', 'like', "%{$this->search}%")
-                      ->orWhere('sku', 'like', "%{$this->search}%");
+                    ->orWhere('sku', 'like', "%{$this->search}%");
             })
             ->limit(20) // Limit results for performance
             ->get()
@@ -101,7 +100,7 @@ class PointOfSale extends Page implements HasForms
                 'id'       => $product->id,
                 'name'     => $product->name,
                 'sku'      => $product->sku,
-                'price'    => (float) $product->price,
+                'price'    => (float)$product->price,
                 'stock'    => $product->stock_qtty,
                 'category' => $product->category->name ?? 'N/A',
             ]);
@@ -119,31 +118,31 @@ class PointOfSale extends Page implements HasForms
 
         if (isset($this->cart[$cartKey])) {
             $newQty = $this->cart[$cartKey]['qtty'] + 1;
-            
+
             // Check cached stock first
             if ($newQty > $product->stock_qtty) {
                 $this->notifyStockError($product->stock_qtty);
                 return;
             }
-            
+
             $this->cart[$cartKey]['qtty'] = $newQty;
         } else {
             $this->cart[$cartKey] = [
                 'product_id' => $product->id,
                 'name'       => $product->name,
                 'sku'        => $product->sku,
-                'unit_price' => (float) $product->price,
+                'unit_price' => (float)$product->price,
                 'qtty'       => 1,
                 'discount'   => 0.00,
-                'subtotal'   => (float) $product->price,
+                'subtotal'   => (float)$product->price,
                 // Cache max stock here to avoid DB queries on quantity update
-                'max_stock'  => $product->stock_qtty, 
+                'max_stock'  => $product->stock_qtty,
             ];
         }
 
         $this->search = '';
         $this->calculateTotals();
-        
+
         Notification::make()->title('Added to cart')->success()->duration(1500)->send();
     }
 
@@ -177,10 +176,10 @@ class PointOfSale extends Page implements HasForms
 
     public function clearCart(): void
     {
-        $this->cart = [];
-        $this->amountPaid = 0.00;
-        $this->change = 0.00;
-        $this->discount = 0.00;
+        $this->cart             = [];
+        $this->amountPaid       = 0.00;
+        $this->change           = 0.00;
+        $this->discount         = 0.00;
         $this->paymentReference = '';
         $this->calculateTotals();
     }
@@ -194,18 +193,18 @@ class PointOfSale extends Page implements HasForms
         $this->subtotal = 0.00;
 
         foreach ($this->cart as $key => $item) {
-            $lineTotal = (float) $item['unit_price'] * (int) $item['qtty'];
-            $itemDiscount = (float) ($item['discount'] ?? 0);
+            $lineTotal    = (float)$item['unit_price'] * (int)$item['qtty'];
+            $itemDiscount = (float)($item['discount'] ?? 0);
 
             // Safety: Item discount cannot exceed the line total
             if ($itemDiscount > $lineTotal) {
-                $itemDiscount = $lineTotal;
+                $itemDiscount                 = $lineTotal;
                 $this->cart[$key]['discount'] = $itemDiscount;
             }
 
-            $itemSubtotal = $lineTotal - $itemDiscount;
+            $itemSubtotal                 = $lineTotal - $itemDiscount;
             $this->cart[$key]['subtotal'] = $itemSubtotal;
-            
+
             $this->subtotal += $itemSubtotal;
         }
 
@@ -238,7 +237,7 @@ class PointOfSale extends Page implements HasForms
     public function setPaymentMethod(string $method): void
     {
         $this->paymentMethod = $method;
-        
+
         if ($method === PaymentMethod::Cash->value) {
             $this->paymentReference = '';
             $this->calculateChange();
@@ -277,7 +276,7 @@ class PointOfSale extends Page implements HasForms
             ]);
 
             // 3. Generate Invoice Number
-            $count = Transaction::whereDate('created_at', today())->count() + 1;
+            $count         = Transaction::whereDate('created_at', today())->count() + 1;
             $invoiceNumber = 'INV-' . now()->format('Ymd') . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
 
             // 4. Create Transaction
@@ -285,9 +284,6 @@ class PointOfSale extends Page implements HasForms
                 'invoice_number' => $invoiceNumber,
                 'date'           => now(),
                 'total'          => $this->total,
-                'subtotal'       => $this->subtotal,
-                'tax'            => $this->tax,
-                'discount'       => $this->discount,
                 'status'         => TransactionStatus::Completed,
                 'cashier_id'     => auth()->id(),
                 'customer_id'    => $this->customerId,
