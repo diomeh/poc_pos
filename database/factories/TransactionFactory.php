@@ -23,7 +23,7 @@ class TransactionFactory extends Factory
             'subtotal'       => 0,
             'tax'            => 0,
             'discount'       => 0,
-            'discount_type'  => collect(DiscountType::cases())->random()->value,
+            'discount_type'  => DiscountType::None,
             'status'         => collect(TransactionStatus::cases())->random()->value,
             'created_at'     => Carbon::now(),
             'updated_at'     => Carbon::now(),

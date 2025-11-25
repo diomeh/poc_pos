@@ -103,12 +103,18 @@ class Transaction extends Model
         return $this->hasMany(TransactionItem::class);
     }
 
-    public function calculateTotal(): self
+    public function calculateSubtotal(): self
     {
-        // 1. Calculate subtotal from items
         $this->subtotal = $this->items
             ->each(fn(TransactionItem $transactionItem) => $transactionItem->calculateTotal())
             ->sum('total');
+
+        return $this;
+    }
+
+    public function calculateTotal(): self
+    {
+        $this->calculateSubtotal();
 
         // 2. Apply transaction-level discount
         $discount = match ($this->discount_type) {

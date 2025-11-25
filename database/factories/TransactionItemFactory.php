@@ -5,13 +5,13 @@ namespace Database\Factories;
 use App\Models\Product;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
-use Database\Factories\Traits\HasDiscount;
+use Database\Factories\Traits\CalculatesDiscount;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Carbon;
 
 class TransactionItemFactory extends Factory
 {
-    use HasDiscount;
+    use CalculatesDiscount;
 
     protected $model = TransactionItem::class;
 

@@ -3,8 +3,9 @@
 namespace Database\Factories\Traits;
 
 use App\Enums\DiscountType;
+use Faker\Generator;
 
-trait HasDiscount
+trait CalculatesDiscount
 {
     /**
      * Get a random discount for a given subtotal.
@@ -20,11 +21,14 @@ trait HasDiscount
      *     float,
      *     DiscountType
      * }
+     * @noinspection PhpVariableIsUsedOnlyInClosureInspection
      */
     public function getDiscount(float $subtotal): array
     {
         /** @var DiscountType $discountType */
         $discountType = collect(DiscountType::cases())->random();
+
+        $faker = new Generator;
 
         return match ($discountType) {
             DiscountType::None       => [
@@ -32,16 +36,16 @@ trait HasDiscount
                 $subtotal,
                 DiscountType::None,
             ],
-            DiscountType::Fixed      => (function () use ($subtotal) {
-                $discountAmount = $this->faker->randomFloat(2, 0, $subtotal);
+            DiscountType::Fixed      => (function () use ($subtotal, $faker) {
+                $discountAmount = $faker->randomFloat(2, 0, $subtotal);
                 return [
                     $discountAmount,
                     $subtotal - $discountAmount,
                     DiscountType::Fixed,
                 ];
             })(),
-            DiscountType::Percentage => (function () use ($subtotal) {
-                $discountPercentage = $this->faker->randomFloat(2, 0, 1);
+            DiscountType::Percentage => (function () use ($subtotal, $faker) {
+                $discountPercentage = $faker->randomFloat(2, 0, 1);
                 $discountAmount     = $discountPercentage * $subtotal;
                 return [
                     $discountPercentage,

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\PaymentStatus;
 use App\Models\Category;
 use App\Models\Customer;
 use App\Models\Payment;
@@ -9,11 +10,14 @@ use App\Models\Product;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
 use App\Models\User;
+use Database\Factories\Traits\CalculatesDiscount;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
+    use CalculatesDiscount;
+
     public const array PRODUCT_DATA = [
         [
             'Electronics',
@@ -219,9 +223,7 @@ class DatabaseSeeder extends Seeder
             'cashier_id'  => $user->id,
             'customer_id' => $customers->random()->id,
         ])->create()->each(function (Transaction $transaction) use ($products) {
-            // Ensure each transaction has at least one item, and that amounts are consistent
-
-            foreach (range(1, 10) as $ignored) {
+            foreach (range(0, rand(1, 9)) as $ignored) {
                 /** @var Product $product */
                 $product = $products->random();
 
@@ -229,15 +231,22 @@ class DatabaseSeeder extends Seeder
                     'transaction_id' => $transaction->id,
                     'product_id'     => $product->id,
                     'unit_price'     => $product->price,
-                ])->create();
+                ])->create()->calculateTotal()->save();
             }
 
-            $transaction->calculateTotal();
+            // Set discount and tax for the transaction
+            $transaction->calculateSubtotal();
+            [$discountAmount, $subtotal, $discountType] = $this->getDiscount($transaction->subtotal);
+            $transaction->discount      = $discountAmount;
+            $transaction->discount_type = $discountType;
+            $transaction->tax           = round(0.1 * $subtotal, 2);
+
+            $transaction->calculateTotal()->save();
 
             Payment::factory()->state([
                 'transaction_id' => $transaction->id,
                 'amount'         => $transaction->total,
-//                'status'         => $transaction->status,
+                'status'         => PaymentStatus::from($transaction->status->value),
             ])->create();
         });
     }

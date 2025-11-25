@@ -7,9 +7,9 @@ use Illuminate\Contracts\Support\Htmlable;
 
 enum DiscountType: int implements HasLabel
 {
-    case Percentage = 0;
+    case None       = 0;
     case Fixed      = 1;
-    case None       = 2;
+    case Percentage = 2;
 
     public function getLabel(): string|Htmlable|null
     {
