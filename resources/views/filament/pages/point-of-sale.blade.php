@@ -263,7 +263,7 @@
                     <!-- Order Discount using Component -->
                     <div class="pt-2">
                         <x-filament.discount-input
-                            wireModel="{{ $discountType === PointOfSale::DISCOUNT_TYPE_PERCENTAGE ? 'discountPercentage' : 'discount' }}"
+                            wireModel="{{ $discountType === PointOfSale::DISCOUNT_TYPE_PERCENTAGE ? $discountPercentage : $discountAmount }}"
                             :discountType="$discountType"
                             label="Order Discount"
                             :showCalculation="true"
