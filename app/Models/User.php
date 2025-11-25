@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Database\Factories\UserFactory;
 use Eloquent;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -42,7 +44,7 @@ use Illuminate\Support\Carbon;
  * @method static Builder<static>|User whereUpdatedAt($value)
  * @mixin Eloquent
  */
-class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable implements MustVerifyEmail, FilamentUser
 {
     use HasFactory, Notifiable;
 
@@ -83,5 +85,10 @@ class User extends Authenticatable implements MustVerifyEmail
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class, 'cashier_id');
+    }
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return true;
     }
 }
