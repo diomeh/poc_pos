@@ -214,10 +214,10 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        // $result = $this->command->ask('Do you want to seed transactions and transaction items? (Yes/No)', 'no');
-        // if (!in_array(strtolower($result), ['yes', 'y', 'ye'])) {
-        //     return;
-        // }
+        $result = $this->command->ask('Do you want to seed transactions and transaction items? (Yes/No)', 'no');
+        if (!in_array(strtolower($result), ['yes', 'y', 'ye'])) {
+            return;
+        }
 
         Transaction::factory(30)->prependState(fn() => [
             'cashier_id'  => $user->id,
