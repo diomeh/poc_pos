@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Enums\DiscountType;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\TransactionStatus;
@@ -19,6 +20,7 @@ use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Str;
 
 class PointOfSale extends Page implements HasForms
 {
@@ -117,8 +119,8 @@ class PointOfSale extends Page implements HasForms
     {
         if (!isset($this->cart[$cartKey])) return;
 
-        $item = $this->cart[$cartKey];
-        $newType = $item['discount_type'];
+        $item            = $this->cart[$cartKey];
+        $newType         = $item['discount_type'];
         $currentDiscount = (float)($item['discount'] ?? 0);
 
         if ($currentDiscount == 0) return;
@@ -130,13 +132,12 @@ class PointOfSale extends Page implements HasForms
         // Switching TO percentage FROM fixed
         if ($newType === self::DISCOUNT_TYPE_PERCENTAGE) {
             // Convert dollar amount to percentage
-            $percentage = ($currentDiscount / $lineTotal) * 100;
+            $percentage                       = ($currentDiscount / $lineTotal) * 100;
             $this->cart[$cartKey]['discount'] = min(100, round($percentage, 2));
-        }
-        // Switching TO fixed FROM percentage
+        } // Switching TO fixed FROM percentage
         else {
             // Convert percentage to dollar amount
-            $dollarAmount = ($currentDiscount / 100) * $lineTotal;
+            $dollarAmount                     = ($currentDiscount / 100) * $lineTotal;
             $this->cart[$cartKey]['discount'] = min($lineTotal, round($dollarAmount, 2));
         }
     }
@@ -154,16 +155,15 @@ class PointOfSale extends Page implements HasForms
         // Switching TO percentage FROM fixed
         if ($this->discountType === self::DISCOUNT_TYPE_PERCENTAGE) {
             if ($this->discount > 0) {
-                $percentage = ($this->discount / $grossTotal) * 100;
+                $percentage               = ($this->discount / $grossTotal) * 100;
                 $this->discountPercentage = min(100, round($percentage, 2));
             } else {
                 $this->discountPercentage = 0;
             }
-        }
-        // Switching TO fixed FROM percentage
+        } // Switching TO fixed FROM percentage
         else {
             if ($this->discountPercentage > 0) {
-                $dollarAmount = ($this->discountPercentage / 100) * $grossTotal;
+                $dollarAmount   = ($this->discountPercentage / 100) * $grossTotal;
                 $this->discount = min($grossTotal, round($dollarAmount, 2));
             } else {
                 $this->discount = 0;
@@ -292,12 +292,12 @@ class PointOfSale extends Page implements HasForms
             // Calculate item discount
             if ($discountType === self::DISCOUNT_TYPE_PERCENTAGE) {
                 $discountValue = min(100, max(0, $discountValue));
-                $itemDiscount = round($lineTotal * ($discountValue / 100), 2);
+                $itemDiscount  = round($lineTotal * ($discountValue / 100), 2);
             } else {
                 $itemDiscount = min($lineTotal, max(0, $discountValue));
             }
 
-            $itemSubtotal = $lineTotal - $itemDiscount;
+            $itemSubtotal                 = $lineTotal - $itemDiscount;
             $this->cart[$key]['subtotal'] = $itemSubtotal;
 
             $this->subtotal += $itemSubtotal;
@@ -311,7 +311,7 @@ class PointOfSale extends Page implements HasForms
 
         // Step 4: Apply Order-Level Discount to Gross Total
         if ($this->discountType === self::DISCOUNT_TYPE_PERCENTAGE) {
-            $percentage = min(100, max(0, $this->discountPercentage));
+            $percentage           = min(100, max(0, $this->discountPercentage));
             $this->discountAmount = round($grossTotal * ($percentage / 100), 2);
         } else {
             $this->discountAmount = min($grossTotal, max(0, $this->discount));
@@ -361,27 +361,21 @@ class PointOfSale extends Page implements HasForms
             return;
         }
 
+        /** @noinspection PhpUnhandledExceptionInspection */
         DB::beginTransaction();
 
         try {
-            $payment = Payment::create([
-                'method'    => PaymentMethod::from($this->paymentMethod),
-                'amount'    => $this->total,
-                'reference' => $this->paymentReference ?: null,
-                'status'    => PaymentStatus::Completed,
-            ]);
-
-            $count         = Transaction::whereDate('created_at', today())->count() + 1;
-            $invoiceNumber = 'INV-' . now()->format('Ymd') . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+            $invoiceNumber = Str::uuid()->toString();
 
             $transaction = Transaction::create([
                 'invoice_number' => $invoiceNumber,
                 'date'           => now(),
-                'total'          => $this->total,
                 'status'         => TransactionStatus::Completed,
+                'tax'            => $this->tax,
+                'discount'       => $this->discountAmount,
+                'discount_type'  => $this->discountType,
                 'cashier_id'     => auth()->id(),
                 'customer_id'    => $this->customerId,
-                'payment_id'     => $payment->id,
             ]);
 
             foreach ($this->cart as $item) {
@@ -394,7 +388,7 @@ class PointOfSale extends Page implements HasForms
                         'qtty'           => $item['qtty'],
                         'unit_price'     => $item['unit_price'],
                         'discount'       => $item['discount'] ?? 0,
-                        'subtotal'       => $item['subtotal'],
+                        'discount_type'  => DiscountType::from($item['discount_type']),
                     ]);
 
                     $product->decrement('stock_qtty', $item['qtty']);
@@ -403,6 +397,17 @@ class PointOfSale extends Page implements HasForms
                 }
             }
 
+            $transaction->calculateTotal();
+
+            Payment::create([
+                'method'         => PaymentMethod::from($this->paymentMethod),
+                'amount'         => $transaction->total,
+                'reference'      => $this->paymentReference ?: null,
+                'status'         => PaymentStatus::Completed,
+                'transaction_id' => $transaction->id,
+            ]);
+
+            /** @noinspection PhpUnhandledExceptionInspection */
             DB::commit();
 
             Notification::make()
@@ -414,6 +419,7 @@ class PointOfSale extends Page implements HasForms
             $this->clearCart();
 
         } catch (Exception $e) {
+            /** @noinspection PhpUnhandledExceptionInspection */
             DB::rollBack();
             Notification::make()->title('Sale failed')->body($e->getMessage())->danger()->send();
         }
