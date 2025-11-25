@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DiscountType;
 use Database\Factories\TransactionItemFactory;
 use Eloquent;
 use Illuminate\Database\Eloquent\Builder;
@@ -20,6 +21,8 @@ use Illuminate\Support\Carbon;
  * @property numeric $subtotal
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property DiscountType $discount_type
+ * @property string $total
  * @property-read Product $product
  * @property-read Transaction $transaction
  * @method static TransactionItemFactory factory($count = null, $state = [])
@@ -28,10 +31,12 @@ use Illuminate\Support\Carbon;
  * @method static Builder<static>|TransactionItem query()
  * @method static Builder<static>|TransactionItem whereCreatedAt($value)
  * @method static Builder<static>|TransactionItem whereDiscount($value)
+ * @method static Builder<static>|TransactionItem whereDiscountType($value)
  * @method static Builder<static>|TransactionItem whereId($value)
  * @method static Builder<static>|TransactionItem whereProductId($value)
  * @method static Builder<static>|TransactionItem whereQtty($value)
  * @method static Builder<static>|TransactionItem whereSubtotal($value)
+ * @method static Builder<static>|TransactionItem whereTotal($value)
  * @method static Builder<static>|TransactionItem whereTransactionId($value)
  * @method static Builder<static>|TransactionItem whereUnitPrice($value)
  * @method static Builder<static>|TransactionItem whereUpdatedAt($value)
@@ -47,7 +52,9 @@ class TransactionItem extends Model
         'qtty',
         'unit_price',
         'discount',
+        'discount_type',
         'subtotal',
+        'total',
     ];
 
     protected $casts = [
@@ -56,6 +63,7 @@ class TransactionItem extends Model
         'qtty'           => 'integer',
         'unit_price'     => 'decimal:2',
         'discount'       => 'decimal:2',
+        'discount_type'  => DiscountType::class,
         'subtotal'       => 'decimal:2',
     ];
 
@@ -67,5 +75,22 @@ class TransactionItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function calculateTotal(): self
+    {
+        // Calculate subtotal before discount
+        $this->subtotal = $this->qtty * $this->unit_price;
+
+        // Apply discount
+        $discountAmount = match ($this->discount_type) {
+            DiscountType::Percentage => ($this->discount / 100) * $this->subtotal,
+            DiscountType::Fixed      => $this->discount,
+            default                  => 0,
+        };
+
+        $this->total = $this->subtotal - $discountAmount;
+
+        return $this;
     }
 }

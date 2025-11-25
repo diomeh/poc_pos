@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DiscountType;
 use App\Enums\TransactionStatus;
 use Database\Factories\TransactionFactory;
 use Eloquent;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -21,9 +23,13 @@ use Illuminate\Support\Carbon;
  * @property TransactionStatus|null $status
  * @property int $cashier_id
  * @property int $customer_id
- * @property int|null $payment_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property numeric $subtotal
+ * @property numeric $tax
+ * @property numeric $discount
+ * @property string $discount_amount
+ * @property DiscountType $discount_type
  * @property-read User $cashier
  * @property-read Customer $customer
  * @property-read Collection<int, TransactionItem> $items
@@ -37,10 +43,13 @@ use Illuminate\Support\Carbon;
  * @method static Builder<static>|Transaction whereCreatedAt($value)
  * @method static Builder<static>|Transaction whereCustomerId($value)
  * @method static Builder<static>|Transaction whereDate($value)
+ * @method static Builder<static>|Transaction whereDiscount($value)
+ * @method static Builder<static>|Transaction whereDiscountAmount($value)
  * @method static Builder<static>|Transaction whereId($value)
  * @method static Builder<static>|Transaction whereInvoiceNumber($value)
- * @method static Builder<static>|Transaction wherePaymentId($value)
  * @method static Builder<static>|Transaction whereStatus($value)
+ * @method static Builder<static>|Transaction whereSubtotal($value)
+ * @method static Builder<static>|Transaction whereTax($value)
  * @method static Builder<static>|Transaction whereTotal($value)
  * @method static Builder<static>|Transaction whereUpdatedAt($value)
  * @mixin Eloquent
@@ -53,10 +62,25 @@ class Transaction extends Model
         'invoice_number',
         'date',
         'total',
+        'subtotal',
+        'tax',
+        'discount',
+        'discount_type',
         'status',
         'cashier_id',
         'customer_id',
-        'payment_id',
+    ];
+
+    protected $casts = [
+        'date'          => 'timestamp',
+        'total'         => 'decimal:2',
+        'subtotal'      => 'decimal:2',
+        'tax'           => 'decimal:2',
+        'discount'      => 'decimal:2',
+        'discount_type' => DiscountType::class,
+        'status'        => TransactionStatus::class,
+        'cashier_id'    => 'integer',
+        'customer_id'   => 'integer',
     ];
 
     public function cashier(): BelongsTo
@@ -69,9 +93,9 @@ class Transaction extends Model
         return $this->belongsTo(Customer::class);
     }
 
-    public function payment(): BelongsTo
+    public function payment(): HasOne
     {
-        return $this->belongsTo(Payment::class);
+        return $this->hasOne(Payment::class);
     }
 
     public function items(): HasMany
@@ -79,15 +103,23 @@ class Transaction extends Model
         return $this->hasMany(TransactionItem::class);
     }
 
-    protected function casts(): array
+    public function calculateTotal(): self
     {
-        return [
-            'date'        => 'timestamp',
-            'total'       => 'decimal:2',
-            'status'      => TransactionStatus::class,
-            'cashier_id'  => 'integer',
-            'customer_id' => 'integer',
-            'payment_id'  => 'integer',
-        ];
+        // 1. Calculate subtotal from items
+        $this->subtotal = $this->items
+            ->each(fn(TransactionItem $transactionItem) => $transactionItem->calculateTotal())
+            ->sum('total');
+
+        // 2. Apply transaction-level discount
+        $discount = match ($this->discount_type) {
+            DiscountType::Percentage => ($this->discount / 100) * $this->subtotal,
+            DiscountType::Fixed      => $this->discount,
+            default                  => 0,
+        };
+
+        // 3. Add tax (assuming tax is a fixed amount here)
+        $this->total = $this->subtotal - $discount + $this->tax;
+
+        return $this;
     }
 }

@@ -14,10 +14,12 @@ class PaymentFactory extends Factory
 
     public function definition(): array
     {
+        /** @var PaymentMethod $method */
+        $method = collect(PaymentMethod::cases())->random();
         return [
-            'method'     => collect(PaymentMethod::cases())->random()->value,
-            'amount'     => $this->faker->randomFloat(2, 1, 1000),
-            'reference'  => $this->faker->uuid(),
+            'method'     => $method->value,
+            'amount'     => $this->state['amount'] ?? $this->faker->randomFloat(2, 1, 1000),
+            'reference'  => $method !== PaymentMethod::Cash ? $this->faker->uuid() : null,
             'status'     => collect(PaymentStatus::cases())->random()->value,
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),

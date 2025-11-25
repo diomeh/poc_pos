@@ -5,9 +5,11 @@ namespace App\Models;
 use Database\Factories\ProductFactory;
 use Eloquent;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -23,6 +25,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Category $category
+ * @property-read Collection<int, TransactionItem> $items
+ * @property-read int|null $items_count
  * @method static ProductFactory factory($count = null, $state = [])
  * @method static Builder<static>|Product newModelQuery()
  * @method static Builder<static>|Product newQuery()
@@ -55,19 +59,21 @@ class Product extends Model
         'category_id',
     ];
 
+    protected $casts = [
+        'price'       => 'decimal:2',
+        'cost'        => 'decimal:2',
+        'stock_qtty'  => 'integer',
+        'is_active'   => 'boolean',
+        'category_id' => 'integer',
+    ];
+
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
     }
 
-    protected function casts(): array
+    public function items(): HasMany
     {
-        return [
-            'price'       => 'decimal:2',
-            'cost'        => 'decimal:2',
-            'stock_qtty'  => 'integer',
-            'is_active'   => 'boolean',
-            'category_id' => 'integer',
-        ];
+        return $this->hasMany(TransactionItem::class);
     }
 }

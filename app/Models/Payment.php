@@ -9,7 +9,7 @@ use Eloquent;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
@@ -20,7 +20,8 @@ use Illuminate\Support\Carbon;
  * @property PaymentStatus $status
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property-read Transaction|null $transaction
+ * @property int $transaction_id
+ * @property-read Transaction $transaction
  * @method static PaymentFactory factory($count = null, $state = [])
  * @method static Builder<static>|Payment newModelQuery()
  * @method static Builder<static>|Payment newQuery()
@@ -31,6 +32,7 @@ use Illuminate\Support\Carbon;
  * @method static Builder<static>|Payment whereMethod($value)
  * @method static Builder<static>|Payment whereReference($value)
  * @method static Builder<static>|Payment whereStatus($value)
+ * @method static Builder<static>|Payment whereTransactionId($value)
  * @method static Builder<static>|Payment whereUpdatedAt($value)
  * @mixin Eloquent
  */
@@ -43,16 +45,18 @@ class Payment extends Model
         'amount',
         'reference',
         'status',
+        'transaction_id',
     ];
 
     protected $casts = [
-        'method' => PaymentMethod::class,
-        'amount' => 'decimal:2',
-        'status' => PaymentStatus::class,
+        'method'         => PaymentMethod::class,
+        'amount'         => 'decimal:2',
+        'status'         => PaymentStatus::class,
+        'transaction_id' => 'integer',
     ];
 
-    public function transaction(): HasOne
+    public function transaction(): BelongsTo
     {
-        return $this->hasOne(Transaction::class, 'payment_id');
+        return $this->belongsTo(Transaction::class);
     }
 }

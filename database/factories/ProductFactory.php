@@ -13,18 +13,23 @@ class ProductFactory extends Factory
 
     public function definition(): array
     {
+        $cost = $this->faker->randomFloat(2, 1, 500);
+        do {
+            $price = $this->faker->randomFloat(2, 1, 1000);
+        } while ($price <= $cost);
+
         return [
             'sku'         => $this->faker->uuid(),
-            'name'        => $this->faker->word(),
-            'description' => $this->faker->text(),
-            'price'       => $this->faker->randomFloat(2, 1, 1000),
-            'cost'        => $this->faker->randomFloat(2, 1, 500),
-            'stock_qtty'  => $this->faker->randomNumber(4),
+            'name'        => $this->state['name'] ?? 'pending',
+            'description' => $this->state['description'] ?? null,
+            'price'       => $price,
+            'cost'        => $cost,
+            'stock_qtty'  => $this->faker->randomNumber(2),
             'is_active'   => $this->faker->boolean(),
             'created_at'  => Carbon::now(),
             'updated_at'  => Carbon::now(),
 
-            'category_id' => Category::factory(),
+            'category_id' => $this->state['category_id'] ?? Category::factory(),
         ];
     }
 }
