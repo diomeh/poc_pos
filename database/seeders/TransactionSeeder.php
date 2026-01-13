@@ -82,7 +82,5 @@ class TransactionSeeder extends Seeder
                     'status'         => PaymentStatus::from($transaction->status->value),
                 ]);
             });
-
-        $this->command->info('Created 50 transactions with items and payments.');
     }
 }

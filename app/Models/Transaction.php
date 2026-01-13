@@ -8,6 +8,7 @@ use Database\Factories\TransactionFactory;
 use Eloquent;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,19 +17,18 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
- * @property int $id
+ * @property string $id
  * @property string $invoice_number
  * @property int|null $date
  * @property numeric $total
  * @property TransactionStatus|null $status
- * @property int $cashier_id
- * @property int $customer_id
+ * @property string $cashier_id
+ * @property string $customer_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property numeric $subtotal
  * @property numeric $tax
  * @property numeric $discount
- * @property string $discount_amount
  * @property DiscountType $discount_type
  * @property-read User $cashier
  * @property-read Customer $customer
@@ -44,7 +44,6 @@ use Illuminate\Support\Carbon;
  * @method static Builder<static>|Transaction whereCustomerId($value)
  * @method static Builder<static>|Transaction whereDate($value)
  * @method static Builder<static>|Transaction whereDiscount($value)
- * @method static Builder<static>|Transaction whereDiscountAmount($value)
  * @method static Builder<static>|Transaction whereId($value)
  * @method static Builder<static>|Transaction whereInvoiceNumber($value)
  * @method static Builder<static>|Transaction whereStatus($value)
@@ -56,7 +55,10 @@ use Illuminate\Support\Carbon;
  */
 class Transaction extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUuids;
+
+    protected $keyType      = 'string';
+    public    $incrementing = false;
 
     protected $fillable = [
         'invoice_number',
@@ -79,8 +81,6 @@ class Transaction extends Model
         'discount'      => 'decimal:2',
         'discount_type' => DiscountType::class,
         'status'        => TransactionStatus::class,
-        'cashier_id'    => 'integer',
-        'customer_id'   => 'integer',
     ];
 
     public function cashier(): BelongsTo

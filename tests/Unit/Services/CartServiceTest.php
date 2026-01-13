@@ -164,7 +164,7 @@ test('it can remove item from cart', function () {
 });
 
 test('it returns false when removing nonexistent item', function () {
-    $removed = $this->cartService->removeItem(999);
+    $removed = $this->cartService->removeItem('non-existent-uuid');
 
     expect($removed)->toBeFalse();
 });

@@ -7,20 +7,21 @@ use App\Enums\PaymentStatus;
 use Database\Factories\PaymentFactory;
 use Eloquent;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * @property int $id
+ * @property string $id
  * @property PaymentMethod $method
  * @property numeric $amount
  * @property string|null $reference
  * @property PaymentStatus $status
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property int $transaction_id
+ * @property string $transaction_id
  * @property-read Transaction $transaction
  * @method static PaymentFactory factory($count = null, $state = [])
  * @method static Builder<static>|Payment newModelQuery()
@@ -38,7 +39,10 @@ use Illuminate\Support\Carbon;
  */
 class Payment extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUuids;
+
+    protected $keyType      = 'string';
+    public    $incrementing = false;
 
     protected $fillable = [
         'method',
@@ -49,10 +53,9 @@ class Payment extends Model
     ];
 
     protected $casts = [
-        'method'         => PaymentMethod::class,
-        'amount'         => 'decimal:2',
-        'status'         => PaymentStatus::class,
-        'transaction_id' => 'integer',
+        'method' => PaymentMethod::class,
+        'amount' => 'decimal:2',
+        'status' => PaymentStatus::class,
     ];
 
     public function transaction(): BelongsTo

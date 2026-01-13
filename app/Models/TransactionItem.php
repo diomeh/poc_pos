@@ -6,15 +6,16 @@ use App\Enums\DiscountType;
 use Database\Factories\TransactionItemFactory;
 use Eloquent;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * @property int $id
+ * @property string $id
  * @property string $transaction_id
- * @property int $product_id
+ * @property string $product_id
  * @property int $qtty
  * @property numeric $unit_price
  * @property numeric $discount
@@ -22,7 +23,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property DiscountType $discount_type
- * @property string $total
+ * @property numeric $total
  * @property-read Product $product
  * @property-read Transaction $transaction
  * @method static TransactionItemFactory factory($count = null, $state = [])
@@ -44,7 +45,10 @@ use Illuminate\Support\Carbon;
  */
 class TransactionItem extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUuids;
+
+    protected $keyType      = 'string';
+    public    $incrementing = false;
 
     protected $fillable = [
         'transaction_id',
@@ -58,13 +62,12 @@ class TransactionItem extends Model
     ];
 
     protected $casts = [
-        'transaction_id' => 'string',
-        'product_id'     => 'integer',
-        'qtty'           => 'integer',
-        'unit_price'     => 'decimal:2',
-        'discount'       => 'decimal:2',
-        'discount_type'  => DiscountType::class,
-        'subtotal'       => 'decimal:2',
+        'qtty'          => 'integer',
+        'unit_price'    => 'decimal:2',
+        'discount'      => 'decimal:2',
+        'discount_type' => DiscountType::class,
+        'subtotal'      => 'decimal:2',
+        'total'         => 'decimal:2',
     ];
 
     public function transaction(): BelongsTo

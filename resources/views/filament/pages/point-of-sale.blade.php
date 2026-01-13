@@ -82,7 +82,7 @@
                             @foreach($this->products as $product)
                                 <button
                                     type="button"
-                                    wire:click="addToCart({{ $product->id }})"
+                                    wire:click="addToCart('{{ $product->id }}')"
                                     x-on:click="showResults = false"
                                     class="w-full px-4 py-3 text-left hover:bg-primary-50 dark:hover:bg-primary-900/20 border-b border-gray-100 dark:border-gray-800 last:border-b-0 transition-colors active:bg-primary-100 dark:active:bg-primary-900/30"
                                 >
@@ -127,7 +127,7 @@
                     @foreach($this->categories as $category)
                         <button
                             type="button"
-                            wire:click="setCategory({{ $category->id }})"
+                            wire:click="setCategory('{{ $category->id }}')"
                             class="shrink-0 px-4 py-2.5 rounded-xl font-medium text-sm transition-all active:scale-95
                                 {{ $activeCategory === $category->id
                                     ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/30'
@@ -156,9 +156,9 @@
                         @foreach($this->products as $product)
                             <button
                                 type="button"
-                                wire:click="addToCart({{ $product->id }})"
+                                wire:click="addToCart('{{ $product->id }}')"
                                 wire:loading.attr="disabled"
-                                wire:target="addToCart({{ $product->id }})"
+                                wire:target="addToCart('{{ $product->id }}')"
                                 class="group relative bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 text-left transition-all hover:shadow-lg hover:border-primary-300 dark:hover:border-primary-700 active:scale-[0.98] disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
                             >
                                 {{-- Stock Badge --}}
@@ -195,7 +195,7 @@
                                 </div>
 
                                 {{-- Loading Spinner --}}
-                                <div wire:loading wire:target="addToCart({{ $product->id }})" class="absolute inset-0 bg-white/80 dark:bg-gray-800/80 rounded-xl flex items-center justify-center">
+                                <div wire:loading wire:target="addToCart('{{ $product->id }}')" class="absolute inset-0 bg-white/80 dark:bg-gray-800/80 rounded-xl flex items-center justify-center">
                                     <x-filament::loading-indicator class="w-8 h-8 text-primary-600"/>
                                 </div>
                             </button>
@@ -258,7 +258,7 @@
                                     <div class="inline-flex items-center rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
                                         <button
                                             type="button"
-                                            wire:click="decrementItem({{ $productId }})"
+                                            wire:click="decrementItem('{{ $productId }}')"
                                             class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-l-lg transition-colors active:bg-gray-300 dark:active:bg-gray-600 touch-manipulation"
                                             aria-label="Decrease quantity"
                                         >
@@ -269,7 +269,7 @@
                                         </span>
                                         <button
                                             type="button"
-                                            wire:click="incrementItem({{ $productId }})"
+                                            wire:click="incrementItem('{{ $productId }}')"
                                             class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-r-lg transition-colors active:bg-gray-300 dark:active:bg-gray-600 touch-manipulation"
                                             aria-label="Increase quantity"
                                         >
@@ -301,7 +301,7 @@
                             <div class="flex flex-col items-end justify-between">
                                 <button
                                     type="button"
-                                    wire:click="removeItem({{ $productId }})"
+                                    wire:click="removeItem('{{ $productId }}')"
                                     class="p-1.5 text-gray-400 hover:text-danger-600 dark:hover:text-danger-400 hover:bg-danger-50 dark:hover:bg-danger-900/20 rounded-lg transition-colors"
                                     aria-label="Remove item"
                                 >

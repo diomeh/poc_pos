@@ -7,6 +7,7 @@ use Eloquent;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\AsUri;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
- * @property int $id
+ * @property string $id
  * @property string $sku
  * @property string $name
  * @property string|null $description
@@ -22,7 +23,7 @@ use Illuminate\Support\Carbon;
  * @property numeric|null $cost
  * @property int|null $stock_qtty
  * @property bool|null $is_active
- * @property int $category_id
+ * @property string $category_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Category $category
@@ -47,7 +48,10 @@ use Illuminate\Support\Carbon;
  */
 class Product extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUuids;
+
+    protected $keyType      = 'string';
+    public    $incrementing = false;
 
     protected $fillable = [
         'sku',
@@ -62,12 +66,11 @@ class Product extends Model
     ];
 
     protected $casts = [
-        'price'       => 'decimal:2',
-        'cost'        => 'decimal:2',
-        'stock_qtty'  => 'integer',
-        'is_active'   => 'boolean',
-        'category_id' => 'integer',
-        'image_url'   => AsUri::class,
+        'price'      => 'decimal:2',
+        'cost'       => 'decimal:2',
+        'stock_qtty' => 'integer',
+        'is_active'  => 'boolean',
+        'image_url'  => AsUri::class,
     ];
 
     public function category(): BelongsTo

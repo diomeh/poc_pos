@@ -13,7 +13,7 @@ use InvalidArgumentException;
 final readonly class CartItemData
 {
     public function __construct(
-        public int          $productId,
+        public string       $productId,
         public string       $name,
         public string       $sku,
         public float        $unitPrice,
@@ -59,7 +59,7 @@ final readonly class CartItemData
     public static function fromArray(array $data): self
     {
         return new self(
-            productId: (int)$data['product_id'],
+            productId: (string)$data['product_id'],
             name: (string)$data['name'],
             sku: (string)$data['sku'],
             unitPrice: (float)$data['unit_price'],

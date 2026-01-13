@@ -43,8 +43,8 @@ class PointOfSale extends Page
 
     // Search & Navigation
     #[Url(as: 'cat')]
-    public ?int  $activeCategory = null;
-    public array $cartItems      = [];
+    public ?string $activeCategory = null;
+    public array   $cartItems      = [];
 
     // Cart State (serialized from CartService)
     public float $orderDiscount     = 0.0;
@@ -52,10 +52,10 @@ class PointOfSale extends Page
     public float $amountPaid        = 0.0; // DiscountType::Fixed
 
     // Payment State
-    public int    $paymentMethod    = 3;
-    public string $paymentReference = ''; // PaymentMethod::Cash
-    public ?int   $customerId       = null;
-    public bool   $showProductGrid  = true;
+    public int     $paymentMethod    = 3;
+    public string  $paymentReference = ''; // PaymentMethod::Cash
+    public ?string $customerId       = null;
+    public bool    $showProductGrid  = true;
 
     // UI State
     public string    $viewMode = 'grid';
@@ -167,7 +167,7 @@ class PointOfSale extends Page
     }
 
     #[On('add-to-cart')]
-    public function addToCart(int $productId): void
+    public function addToCart(string $productId): void
     {
         try {
             $product = Product::findOrFail($productId);
@@ -200,7 +200,7 @@ class PointOfSale extends Page
         $this->orderDiscountType = $state['order_discount_type'];
     }
 
-    public function incrementItem(int $productId): void
+    public function incrementItem(string $productId): void
     {
         try {
             $this->cartService->incrementQuantity($productId);
@@ -214,7 +214,7 @@ class PointOfSale extends Page
         }
     }
 
-    public function decrementItem(int $productId): void
+    public function decrementItem(string $productId): void
     {
         try {
             $this->cartService->decrementQuantity($productId);
@@ -224,7 +224,7 @@ class PointOfSale extends Page
         }
     }
 
-    public function updateItemQuantity(int $productId, int $quantity): void
+    public function updateItemQuantity(string $productId, int $quantity): void
     {
         try {
             $this->cartService->updateQuantity($productId, $quantity);
@@ -238,7 +238,7 @@ class PointOfSale extends Page
         }
     }
 
-    public function removeItem(int $productId): void
+    public function removeItem(string $productId): void
     {
         $this->cartService->removeItem($productId);
         $this->syncFromCartService();
@@ -256,7 +256,7 @@ class PointOfSale extends Page
     |--------------------------------------------------------------------------
     */
 
-    public function updateItemDiscount(int $productId, float $discount, int $type): void
+    public function updateItemDiscount(string $productId, float $discount, int $type): void
     {
         $discountType = DiscountType::tryFrom($type) ?? DiscountType::Fixed;
         $this->cartService->updateItemDiscount($productId, $discount, $discountType);
@@ -351,7 +351,7 @@ class PointOfSale extends Page
             ->send();
     }
 
-    public function setCategory(?int $categoryId): void
+    public function setCategory(?string $categoryId): void
     {
         $this->activeCategory = $categoryId;
         $this->search         = '';

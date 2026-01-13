@@ -26,7 +26,7 @@ class CartService
     private const float DEFAULT_TAX_RATE = 0.10;
 
     /**
-     * @var array<int, CartItemData>
+     * @var array<string, CartItemData>
      */
     private array $items = [];
 
@@ -102,7 +102,7 @@ class CartService
     /**
      * Increment item quantity
      */
-    public function incrementQuantity(int $productId): ?CartItemData
+    public function incrementQuantity(string $productId): ?CartItemData
     {
         if (!isset($this->items[$productId])) {
             return null;
@@ -122,7 +122,7 @@ class CartService
      *
      * @throws Exception
      */
-    public function updateQuantity(int $productId, int $quantity): ?CartItemData
+    public function updateQuantity(string $productId, int $quantity): ?CartItemData
     {
         if (!isset($this->items[$productId])) {
             return null;
@@ -147,7 +147,7 @@ class CartService
     /**
      * Remove item from cart
      */
-    public function removeItem(int $productId): bool
+    public function removeItem(string $productId): bool
     {
         if (!isset($this->items[$productId])) {
             return false;
@@ -160,7 +160,7 @@ class CartService
     /**
      * Decrement item quantity
      */
-    public function decrementQuantity(int $productId): ?CartItemData
+    public function decrementQuantity(string $productId): ?CartItemData
     {
         if (!isset($this->items[$productId])) {
             return null;
@@ -181,7 +181,7 @@ class CartService
      * Update item discount
      */
     public function updateItemDiscount(
-        int          $productId,
+        string       $productId,
         float        $discount,
         DiscountType $type
     ): ?CartItemData
@@ -229,7 +229,7 @@ class CartService
     /**
      * Get all cart items
      *
-     * @return array<int, CartItemData>
+     * @return array<string, CartItemData>
      */
     public function getItems(): array
     {
@@ -239,7 +239,7 @@ class CartService
     /**
      * Get item by product ID
      */
-    public function getItem(int $productId): ?CartItemData
+    public function getItem(string $productId): ?CartItemData
     {
         return $this->items[$productId] ?? null;
     }
@@ -312,7 +312,7 @@ class CartService
 
         if (isset($data['items']) && is_array($data['items'])) {
             foreach ($data['items'] as $productId => $itemData) {
-                $this->items[(int)$productId] = CartItemData::fromArray($itemData);
+                $this->items[$productId] = CartItemData::fromArray($itemData);
             }
         }
 
@@ -345,8 +345,8 @@ class CartService
      * @throws Exception
      */
     public function checkout(
-        int           $cashierId,
-        ?int          $customerId,
+        string        $cashierId,
+        ?string       $customerId,
         float         $amountPaid,
         PaymentMethod $paymentMethod,
         ?string       $paymentReference = null,
@@ -492,7 +492,7 @@ class CartService
     /**
      * Get products by category
      */
-    public function getProductsByCategory(?int $categoryId, int $limit = 50): Collection
+    public function getProductsByCategory(?string $categoryId, int $limit = 50): Collection
     {
         $query = Product::query()
             ->where('is_active', true)

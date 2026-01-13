@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Models\Payment;
+use App\Models\Transaction;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Carbon;
 
@@ -23,6 +24,8 @@ class PaymentFactory extends Factory
             'status'     => collect(PaymentStatus::cases())->random()->value,
             'created_at' => Carbon::now(),
             'updated_at' => Carbon::now(),
+
+            'transaction_id' => $this->state['transaction_id'] ?? Transaction::factory(),
         ];
     }
 }

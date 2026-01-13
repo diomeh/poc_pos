@@ -9,10 +9,11 @@ class PaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'method'    => ['required'],
-            'amount'    => ['required', 'numeric'],
-            'reference' => ['required'],
-            'status'    => ['required', 'integer'],
+            'method'         => ['required'],
+            'amount'         => ['required', 'numeric'],
+            'reference'      => ['nullable'],
+            'status'         => ['required', 'integer'],
+            'transaction_id' => ['required', 'exists:transactions'],
         ];
     }
 
