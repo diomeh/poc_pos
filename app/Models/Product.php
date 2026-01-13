@@ -5,6 +5,7 @@ namespace App\Models;
 use Database\Factories\ProductFactory;
 use Eloquent;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\AsUri;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -57,6 +58,7 @@ class Product extends Model
         'stock_qtty',
         'is_active',
         'category_id',
+        'image_url',
     ];
 
     protected $casts = [
@@ -65,6 +67,7 @@ class Product extends Model
         'stock_qtty'  => 'integer',
         'is_active'   => 'boolean',
         'category_id' => 'integer',
+        'image_url'   => AsUri::class,
     ];
 
     public function category(): BelongsTo

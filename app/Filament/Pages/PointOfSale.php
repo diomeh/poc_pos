@@ -4,426 +4,380 @@ namespace App\Filament\Pages;
 
 use App\Enums\DiscountType;
 use App\Enums\PaymentMethod;
-use App\Enums\PaymentStatus;
-use App\Enums\TransactionStatus;
+use App\Models\Category;
 use App\Models\Customer;
-use App\Models\Payment;
 use App\Models\Product;
-use App\Models\Transaction;
-use App\Models\TransactionItem;
+use App\Services\CartService;
 use BackedEnum;
 use Exception;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
-use Str;
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
+use Livewire\Attributes\Url;
 
-class PointOfSale extends Page implements HasForms
+/**
+ * Point of Sale Page
+ *
+ * Touch-optimized, responsive POS interface.
+ * Delegates business logic to CartService for testability.
+ *
+ * @property CartService|null $cartService
+ */
+class PointOfSale extends Page
 {
-    use InteractsWithForms;
-
-    public const string DISCOUNT_TYPE_FIXED      = 'fixed';
-    public const string DISCOUNT_TYPE_PERCENTAGE = 'percentage';
-
     protected static string|null|BackedEnum $navigationIcon  = Heroicon::ShoppingCart;
-    protected string                        $view            = 'filament.pages.point-of-sale';
     protected static ?string                $navigationLabel = 'Point of Sale';
     protected static ?string                $title           = 'Point of Sale';
+    protected static ?int                   $navigationSort  = 1;
+    #[Url(as: 'q')]
+    public string                           $search          = '';
 
-    // Properties
-    public string $search = '';
-    public array  $cart   = [];
+    /*
+    |--------------------------------------------------------------------------
+    | Public Properties (Livewire State)
+    |--------------------------------------------------------------------------
+    */
 
-    // Math properties initialized to float to prevent type issues
-    public float  $subtotal           = 0.00;
-    public float  $tax                = 0.00;
-    public float  $taxRate            = 0.10; // 10%
-    public float  $discount           = 0.00;
-    public string $discountType       = self::DISCOUNT_TYPE_FIXED;
-    public float  $discountPercentage = 0.00;
-    public float  $discountAmount     = 0.00;
-    public float  $total              = 0.00;
-    public float  $amountPaid         = 0.00;
-    public float  $change             = 0.00;
-    public int    $paymentMethod      = PaymentMethod::Cash->value;
-    public ?int   $customerId         = null;
-    public string $paymentReference   = '';
+    // Search & Navigation
+    #[Url(as: 'cat')]
+    public ?int  $activeCategory = null;
+    public array $cartItems      = [];
 
-    // Listeners
-    protected $listeners = ['productAdded' => 'addToCart'];
+    // Cart State (serialized from CartService)
+    public float $orderDiscount     = 0.0;
+    public int   $orderDiscountType = 1;
+    public float $amountPaid        = 0.0; // DiscountType::Fixed
+
+    // Payment State
+    public int    $paymentMethod    = 3;
+    public string $paymentReference = ''; // PaymentMethod::Cash
+    public ?int   $customerId       = null;
+    public bool   $showProductGrid  = true;
+
+    // UI State
+    public string    $viewMode = 'grid';
+    protected string $view     = 'filament.pages.point-of-sale'; // 'grid' or 'list'
+
+    /*
+    |--------------------------------------------------------------------------
+    | Lifecycle
+    |--------------------------------------------------------------------------
+    */
 
     public function mount(): void
     {
-        $this->customerId = Customer::first()?->id;
-        $this->calculateTotals();
+        $this->customerId    = Customer::first()?->id;
+        $this->paymentMethod = PaymentMethod::Cash->value;
+    }
+
+    public function hydrate(): void
+    {
+        // Ensure cart service is synced on each request
+        $this->syncCartService();
     }
 
     /*
-     * -----------------------------------------------------------------
-     *  LIFECYCLE HOOKS
-     * -----------------------------------------------------------------
-     */
+    |--------------------------------------------------------------------------
+    | Computed Properties (Cached per request)
+    |--------------------------------------------------------------------------
+    */
 
-    public function updatedCart($value, $key): void
+    private function syncCartService(): void
     {
-        // Handle empty discount values for cart items
-        if (str_ends_with($key, '.discount')) {
-            $cartKey = (int)explode('.', $key)[1];
-            if (isset($this->cart[$cartKey]) && ($value === '' || $value === null)) {
-                $this->cart[$cartKey]['discount'] = 0.00;
-            }
+        // Recreate service with current state - handled by computed property
+        unset($this->cartService);
+    }
+
+    #[Computed]
+    public function cartService(): CartService
+    {
+        $service = new CartService();
+        $service->fromArray([
+            'items'               => $this->cartItems,
+            'order_discount'      => $this->orderDiscount,
+            'order_discount_type' => $this->orderDiscountType,
+        ]);
+        return $service;
+    }
+
+    #[Computed]
+    public function totals(): array
+    {
+        return $this->cartService->getTotals()->toArray();
+    }
+
+    #[Computed]
+    public function categories(): Collection
+    {
+        return Category::query()
+            ->whereHas('products', fn($q) => $q->where('is_active', true)
+                ->where('stock_qtty', '>', 0)
+            )
+            ->withCount(['products' => fn($q) => $q->where('is_active', true)
+                ->where('stock_qtty', '>', 0)
+            ])
+            ->orderBy('name')
+            ->get();
+    }
+
+    #[Computed]
+    public function products(): Collection
+    {
+        if (!empty($this->search)) {
+            return $this->cartService->searchProducts($this->search);
         }
 
-        // When a cart item's discount_type changes, convert the discount value
-        if (str_ends_with($key, '.discount_type')) {
-            $cartKey = (int)explode('.', $key)[1];
-            $this->handleItemDiscountTypeChange($cartKey);
+        return $this->cartService->getProductsByCategory($this->activeCategory);
+    }
+
+    #[Computed]
+    public function change(): float
+    {
+        if ($this->paymentMethod !== PaymentMethod::Cash->value) {
+            return 0.0;
         }
-        $this->calculateTotals();
+        return $this->cartService->calculateChange($this->amountPaid);
     }
 
-    public function updatedDiscountType(): void
+    #[Computed]
+    public function canCheckout(): bool
     {
-        // When order discount type changes, convert the value
-        $this->handleOrderDiscountTypeChange();
-        $this->calculateTotals();
-    }
-
-    public function updatedDiscount(): void
-    {
-        // When discount value changes in fixed mode
-        $this->calculateTotals();
-    }
-
-    public function updatedDiscountPercentage(): void
-    {
-        // When percentage changes
-        $this->calculateTotals();
-    }
-
-    public function updatedAmountPaid(): void
-    {
-        $this->calculateChange();
-    }
-
-    /* ----------------------------------------------------------------- */
-
-    /**
-     * Handle item discount type change (fixed <-> percentage)
-     */
-    private function handleItemDiscountTypeChange(int $cartKey): void
-    {
-        if (!isset($this->cart[$cartKey])) return;
-
-        $item            = $this->cart[$cartKey];
-        $newType         = $item['discount_type'];
-        $currentDiscount = (float)($item['discount'] ?? 0);
-
-        if ($currentDiscount == 0) return;
-
-        $lineTotal = (float)$item['unit_price'] * (int)$item['qtty'];
-
-        if ($lineTotal == 0) return;
-
-        // Switching TO percentage FROM fixed
-        if ($newType === self::DISCOUNT_TYPE_PERCENTAGE) {
-            // Convert dollar amount to percentage
-            $percentage                       = ($currentDiscount / $lineTotal) * 100;
-            $this->cart[$cartKey]['discount'] = min(100, round($percentage, 2));
-        } // Switching TO fixed FROM percentage
-        else {
-            // Convert percentage to dollar amount
-            $dollarAmount                     = ($currentDiscount / 100) * $lineTotal;
-            $this->cart[$cartKey]['discount'] = min($lineTotal, round($dollarAmount, 2));
-        }
-    }
-
-    /**
-     * Handle order discount type change (fixed <-> percentage)
-     */
-    private function handleOrderDiscountTypeChange(): void
-    {
-        // Calculate gross total first
-        $grossTotal = $this->subtotal + $this->tax;
-
-        if ($grossTotal == 0) return;
-
-        // Switching TO percentage FROM fixed
-        if ($this->discountType === self::DISCOUNT_TYPE_PERCENTAGE) {
-            if ($this->discount > 0) {
-                $percentage               = ($this->discount / $grossTotal) * 100;
-                $this->discountPercentage = min(100, round($percentage, 2));
-            } else {
-                $this->discountPercentage = 0;
-            }
-        } // Switching TO fixed FROM percentage
-        else {
-            if ($this->discountPercentage > 0) {
-                $dollarAmount   = ($this->discountPercentage / 100) * $grossTotal;
-                $this->discount = min($grossTotal, round($dollarAmount, 2));
-            } else {
-                $this->discount = 0;
-            }
-        }
-    }
-
-    public function searchProducts(): array|Collection
-    {
-        if (empty($this->search) || strlen($this->search) < 2) {
-            return [];
+        if (empty($this->cartItems)) {
+            return false;
         }
 
-        return Product::query()
-            ->where('is_active', true)
-            ->where(function ($query) {
-                $query->where('name', 'like', "%{$this->search}%")
-                    ->orWhere('sku', 'like', "%{$this->search}%");
-            })
-            ->limit(20)
-            ->get()
-            ->map(fn($product) => [
-                'id'       => $product->id,
-                'name'     => $product->name,
-                'sku'      => $product->sku,
-                'price'    => (float)$product->price,
-                'stock'    => $product->stock_qtty,
-                'category' => $product->category->name ?? 'N/A',
-            ]);
+        $total = $this->totals['total'] ?? 0;
+        return round($this->amountPaid, 2) >= round($total, 2);
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Cart Actions
+    |--------------------------------------------------------------------------
+    */
+
+    #[Computed]
+    public function remainingAmount(): float
+    {
+        $total = $this->totals['total'] ?? 0;
+        return max(0, round($total - $this->amountPaid, 2));
+    }
+
+    #[On('add-to-cart')]
     public function addToCart(int $productId): void
     {
-        $product = Product::find($productId);
+        try {
+            $product = Product::findOrFail($productId);
+            $this->cartService->addProduct($product);
+            $this->syncFromCartService();
 
-        if (!$this->validateProduct($product)) {
-            return;
+            Notification::make()
+                ->title('Added to cart')
+                ->body($product->name)
+                ->success()
+                ->duration(1500)
+                ->send();
+
+            $this->search = '';
+
+        } catch (Exception $e) {
+            Notification::make()
+                ->title('Cannot add to cart')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
         }
-
-        $cartKey = $product->id;
-
-        if (isset($this->cart[$cartKey])) {
-            $newQty = $this->cart[$cartKey]['qtty'] + 1;
-
-            if ($newQty > $product->stock_qtty) {
-                $this->notifyStockError($product->stock_qtty);
-                return;
-            }
-
-            $this->cart[$cartKey]['qtty'] = $newQty;
-        } else {
-            $this->cart[$cartKey] = [
-                'product_id'    => $product->id,
-                'name'          => $product->name,
-                'sku'           => $product->sku,
-                'unit_price'    => (float)$product->price,
-                'qtty'          => 1,
-                'discount'      => 0.00,
-                'discount_type' => self::DISCOUNT_TYPE_FIXED,
-                'subtotal'      => (float)$product->price,
-                'max_stock'     => $product->stock_qtty,
-            ];
-        }
-
-        $this->search = '';
-        $this->calculateTotals();
-
-        Notification::make()->title('Added to cart')->success()->duration(1500)->send();
     }
 
-    public function updateQuantity(int $cartKey, int $quantity): void
+    private function syncFromCartService(): void
     {
-        if (!isset($this->cart[$cartKey])) return;
-
-        if ($quantity <= 0) {
-            $this->removeFromCart($cartKey);
-            return;
-        }
-
-        $maxStock = $this->cart[$cartKey]['max_stock'] ?? 0;
-
-        if ($quantity > $maxStock) {
-            $this->notifyStockError($maxStock);
-            $this->cart[$cartKey]['qtty'] = $maxStock;
-        } else {
-            $this->cart[$cartKey]['qtty'] = $quantity;
-        }
-
-        $this->calculateTotals();
+        $state                   = $this->cartService->toArray();
+        $this->cartItems         = $state['items'];
+        $this->orderDiscount     = $state['order_discount'];
+        $this->orderDiscountType = $state['order_discount_type'];
     }
 
-    public function removeFromCart(int $cartKey): void
+    public function incrementItem(int $productId): void
     {
-        unset($this->cart[$cartKey]);
-        $this->calculateTotals();
+        try {
+            $this->cartService->incrementQuantity($productId);
+            $this->syncFromCartService();
+        } catch (Exception $e) {
+            Notification::make()
+                ->title('Cannot increase quantity')
+                ->body($e->getMessage())
+                ->warning()
+                ->send();
+        }
     }
 
-    public function clearCart(): void
+    public function decrementItem(int $productId): void
     {
-        $this->cart               = [];
-        $this->amountPaid         = 0.00;
-        $this->change             = 0.00;
-        $this->discount           = 0.00;
-        $this->discountPercentage = 0.00;
-        $this->discountAmount     = 0.00;
-        $this->discountType       = self::DISCOUNT_TYPE_FIXED;
-        $this->paymentReference   = '';
-        $this->calculateTotals();
+        try {
+            $this->cartService->decrementQuantity($productId);
+            $this->syncFromCartService();
+        } catch (Exception) {
+            // Item removed or at minimum - no notification needed
+        }
     }
 
-    /**
-     * Master Calculation Logic
-     * Properly separates item discounts from order discounts
-     */
-    public function calculateTotals(): void
+    public function updateItemQuantity(int $productId, int $quantity): void
     {
-        $this->subtotal = 0.00;
-
-        // Step 1: Calculate each item's subtotal after item-level discount
-        foreach ($this->cart as $key => $item) {
-            $lineTotal = (float)$item['unit_price'] * (int)$item['qtty'];
-
-            $discountType  = $item['discount_type'] ?? self::DISCOUNT_TYPE_FIXED;
-            $discountValue = (float)($item['discount'] ?? 0);
-
-            // Calculate item discount
-            if ($discountType === self::DISCOUNT_TYPE_PERCENTAGE) {
-                $discountValue = min(100, max(0, $discountValue));
-                $itemDiscount  = round($lineTotal * ($discountValue / 100), 2);
-            } else {
-                $itemDiscount = min($lineTotal, max(0, $discountValue));
-            }
-
-            $itemSubtotal                 = $lineTotal - $itemDiscount;
-            $this->cart[$key]['subtotal'] = $itemSubtotal;
-
-            $this->subtotal += $itemSubtotal;
+        try {
+            $this->cartService->updateQuantity($productId, $quantity);
+            $this->syncFromCartService();
+        } catch (Exception $e) {
+            Notification::make()
+                ->title('Cannot update quantity')
+                ->body($e->getMessage())
+                ->warning()
+                ->send();
         }
-
-        // Step 2: Calculate Tax on subtotal (after item discounts)
-        $this->tax = round($this->subtotal * $this->taxRate, 2);
-
-        // Step 3: Calculate Gross Total (subtotal + tax)
-        $grossTotal = $this->subtotal + $this->tax;
-
-        // Step 4: Apply Order-Level Discount to Gross Total
-        if ($this->discountType === self::DISCOUNT_TYPE_PERCENTAGE) {
-            $percentage           = min(100, max(0, $this->discountPercentage));
-            $this->discountAmount = round($grossTotal * ($percentage / 100), 2);
-        } else {
-            $this->discountAmount = min($grossTotal, max(0, $this->discount));
-        }
-
-        // Step 5: Calculate Final Total
-        $this->total = max(0, round($grossTotal - $this->discountAmount, 2));
-
-        // Recalculate Change
-        $this->calculateChange();
     }
 
-    public function calculateChange(): void
+    public function removeItem(int $productId): void
     {
-        if ($this->paymentMethod === PaymentMethod::Cash->value) {
-            $this->change = max(0, round($this->amountPaid - $this->total, 2));
-        } else {
-            $this->change = 0;
-        }
+        $this->cartService->removeItem($productId);
+        $this->syncFromCartService();
+
+        Notification::make()
+            ->title('Item removed')
+            ->success()
+            ->duration(1000)
+            ->send();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Order Discount Actions
+    |--------------------------------------------------------------------------
+    */
+
+    public function updateItemDiscount(int $productId, float $discount, int $type): void
+    {
+        $discountType = DiscountType::tryFrom($type) ?? DiscountType::Fixed;
+        $this->cartService->updateItemDiscount($productId, $discount, $discountType);
+        $this->syncFromCartService();
+    }
+
+    public function updatedOrderDiscount(): void
+    {
+        $this->syncCartService();
+    }
+
+    public function updatedOrderDiscountType(): void
+    {
+        $this->syncCartService();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Payment Actions
+    |--------------------------------------------------------------------------
+    */
+
+    public function setOrderDiscount(float $discount, int $type): void
+    {
+        $this->orderDiscount     = $discount;
+        $this->orderDiscountType = $type;
     }
 
     public function setPaymentMethod(int $method): void
     {
-        $this->paymentMethod = $method;
+        $this->paymentMethod    = $method;
+        $this->paymentReference = '';
 
-        if ($method === PaymentMethod::Cash->value) {
-            $this->paymentReference = '';
-            $this->calculateChange();
-        } else {
-            $this->change = 0;
+        // Auto-fill exact amount for non-cash payments
+        if ($method !== PaymentMethod::Cash->value) {
+            $this->amountPaid = $this->totals['total'] ?? 0;
         }
     }
 
+    public function setAmountPaid(float $amount): void
+    {
+        $this->amountPaid = $amount;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Navigation Actions
+    |--------------------------------------------------------------------------
+    */
+
     public function completeSale(): void
     {
-        if (empty($this->cart)) {
-            Notification::make()->title('Cart is empty')->danger()->send();
-            return;
-        }
-
-        if (round($this->amountPaid, 2) < round($this->total, 2)) {
-            Notification::make()
-                ->title('Insufficient payment')
-                ->body('Amount paid must be at least $' . number_format($this->total, 2))
-                ->danger()
-                ->send();
-            return;
-        }
-
-        /** @noinspection PhpUnhandledExceptionInspection */
-        DB::beginTransaction();
-
         try {
-            $invoiceNumber = Str::uuid()->toString();
-
-            $transaction = Transaction::create([
-                'invoice_number' => $invoiceNumber,
-                'date'           => now(),
-                'status'         => TransactionStatus::Completed,
-                'tax'            => $this->tax,
-                'discount'       => $this->discountAmount,
-                'discount_type'  => $this->discountType,
-                'cashier_id'     => auth()->id(),
-                'customer_id'    => $this->customerId,
-            ]);
-
-            foreach ($this->cart as $item) {
-                $product = Product::where('id', $item['product_id'])->lockForUpdate()->first();
-
-                if ($product && $product->stock_qtty >= $item['qtty']) {
-                    TransactionItem::create([
-                        'transaction_id' => $transaction->id,
-                        'product_id'     => $item['product_id'],
-                        'qtty'           => $item['qtty'],
-                        'unit_price'     => $item['unit_price'],
-                        'discount'       => $item['discount'] ?? 0,
-                        'discount_type'  => DiscountType::from($item['discount_type']),
-                    ]);
-
-                    $product->decrement('stock_qtty', $item['qtty']);
-                } else {
-                    throw new Exception("Product '{$item['name']}' is out of stock.");
-                }
-            }
-
-            $transaction->calculateTotal();
-
-            Payment::create([
-                'method'         => PaymentMethod::from($this->paymentMethod),
-                'amount'         => $transaction->total,
-                'reference'      => $this->paymentReference ?: null,
-                'status'         => PaymentStatus::Completed,
-                'transaction_id' => $transaction->id,
-            ]);
-
-            /** @noinspection PhpUnhandledExceptionInspection */
-            DB::commit();
+            $transaction = $this->cartService->checkout(
+                cashierId: auth()->id(),
+                customerId: $this->customerId,
+                amountPaid: $this->amountPaid,
+                paymentMethod: PaymentMethod::from($this->paymentMethod),
+                paymentReference: $this->paymentReference ?: null,
+            );
 
             Notification::make()
-                ->title('Sale completed')
-                ->body("Invoice: {$invoiceNumber}")
+                ->title('Sale completed!')
+                ->body("Invoice: {$transaction->invoice_number}")
                 ->success()
+                ->duration(5000)
                 ->send();
 
             $this->clearCart();
 
         } catch (Exception $e) {
-            /** @noinspection PhpUnhandledExceptionInspection */
-            DB::rollBack();
-            Notification::make()->title('Sale failed')->body($e->getMessage())->danger()->send();
+            Notification::make()
+                ->title('Sale failed')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
         }
     }
+
+    public function clearCart(): void
+    {
+        $this->cartItems         = [];
+        $this->orderDiscount     = 0.0;
+        $this->orderDiscountType = DiscountType::Fixed->value;
+        $this->amountPaid        = 0.0;
+        $this->paymentReference  = '';
+
+        Notification::make()
+            ->title('Cart cleared')
+            ->success()
+            ->duration(1500)
+            ->send();
+    }
+
+    public function setCategory(?int $categoryId): void
+    {
+        $this->activeCategory = $categoryId;
+        $this->search         = '';
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Helper Methods
+    |--------------------------------------------------------------------------
+    */
+
+    public function toggleViewMode(): void
+    {
+        $this->viewMode = $this->viewMode === 'grid' ? 'list' : 'grid';
+    }
+
+    public function clearSearch(): void
+    {
+        $this->search = '';
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Private Helpers
+    |--------------------------------------------------------------------------
+    */
 
     public function getPaymentMethods(): array
     {
@@ -432,31 +386,27 @@ class PointOfSale extends Page implements HasForms
             ->toArray();
     }
 
-    // --- Helpers ---
-
-    private function validateProduct(?Product $product): bool
+    public function getCashSuggestions(): array
     {
-        if (!$product) {
-            Notification::make()->title('Product not found')->danger()->send();
-            return false;
-        }
-        if (!$product->is_active) {
-            Notification::make()->title('Product is inactive')->danger()->send();
-            return false;
-        }
-        if ($product->stock_qtty <= 0) {
-            $this->notifyStockError(0);
-            return false;
-        }
-        return true;
-    }
+        $total = $this->totals['total'] ?? 0;
 
-    private function notifyStockError(int $available): void
-    {
-        Notification::make()
-            ->title('Insufficient stock')
-            ->body("Only {$available} units available")
-            ->warning()
-            ->send();
+        if ($total <= 0) {
+            return [];
+        }
+
+        $suggestions = array_unique([
+            $total,                     // Exact
+            ceil($total),               // Next dollar
+            ceil($total / 5) * 5,       // Next 5
+            ceil($total / 10) * 10,     // Next 10
+            ceil($total / 20) * 20,     // Next 20
+            50,
+            100,
+        ]);
+
+        $suggestions = array_filter($suggestions, fn($v) => $v >= $total);
+        sort($suggestions);
+
+        return array_slice($suggestions, 0, 6);
     }
 }

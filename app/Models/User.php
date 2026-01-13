@@ -69,6 +69,16 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
         'remember_token',
     ];
 
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class, 'cashier_id');
+    }
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return true;
+    }
+
     /**
      * Get the attributes that should be cast.
      *
@@ -80,15 +90,5 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
             'email_verified_at' => 'datetime',
             'password'          => 'hashed',
         ];
-    }
-
-    public function transactions(): HasMany
-    {
-        return $this->hasMany(Transaction::class, 'cashier_id');
-    }
-
-    public function canAccessPanel(Panel $panel): bool
-    {
-        return true;
     }
 }
