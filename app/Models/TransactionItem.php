@@ -19,11 +19,11 @@ use Illuminate\Support\Carbon;
  * @property int $qtty
  * @property numeric $unit_price
  * @property numeric $discount
+ * @property DiscountType $discount_type
  * @property numeric $subtotal
+ * @property numeric $total
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property DiscountType $discount_type
- * @property numeric $total
  * @property-read Product $product
  * @property-read Transaction $transaction
  * @method static TransactionItemFactory factory($count = null, $state = [])

@@ -19,6 +19,7 @@ use Illuminate\Support\Carbon;
  * @property string $sku
  * @property string $name
  * @property string|null $description
+ * @property AsUri|null $image_url
  * @property numeric|null $price
  * @property numeric|null $cost
  * @property int|null $stock_qtty
@@ -38,6 +39,7 @@ use Illuminate\Support\Carbon;
  * @method static Builder<static>|Product whereCreatedAt($value)
  * @method static Builder<static>|Product whereDescription($value)
  * @method static Builder<static>|Product whereId($value)
+ * @method static Builder<static>|Product whereImageUrl($value)
  * @method static Builder<static>|Product whereIsActive($value)
  * @method static Builder<static>|Product whereName($value)
  * @method static Builder<static>|Product wherePrice($value)

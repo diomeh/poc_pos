@@ -21,15 +21,15 @@ use Illuminate\Support\Carbon;
  * @property string $invoice_number
  * @property int|null $date
  * @property numeric $total
+ * @property numeric $subtotal
+ * @property numeric $tax
+ * @property DiscountType $discount_type
+ * @property numeric $discount
  * @property TransactionStatus|null $status
  * @property string $cashier_id
  * @property string $customer_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property numeric $subtotal
- * @property numeric $tax
- * @property numeric $discount
- * @property DiscountType $discount_type
  * @property-read User $cashier
  * @property-read Customer $customer
  * @property-read Collection<int, TransactionItem> $items
@@ -44,6 +44,7 @@ use Illuminate\Support\Carbon;
  * @method static Builder<static>|Transaction whereCustomerId($value)
  * @method static Builder<static>|Transaction whereDate($value)
  * @method static Builder<static>|Transaction whereDiscount($value)
+ * @method static Builder<static>|Transaction whereDiscountType($value)
  * @method static Builder<static>|Transaction whereId($value)
  * @method static Builder<static>|Transaction whereInvoiceNumber($value)
  * @method static Builder<static>|Transaction whereStatus($value)

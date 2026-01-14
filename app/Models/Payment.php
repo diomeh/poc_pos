@@ -19,9 +19,9 @@ use Illuminate\Support\Carbon;
  * @property numeric $amount
  * @property string|null $reference
  * @property PaymentStatus $status
+ * @property string $transaction_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property string $transaction_id
  * @property-read Transaction $transaction
  * @method static PaymentFactory factory($count = null, $state = [])
  * @method static Builder<static>|Payment newModelQuery()
