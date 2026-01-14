@@ -5,7 +5,9 @@ namespace App\Models;
 use Database\Factories\ProductFactory;
 use Eloquent;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\AsUri;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,15 +15,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
- * @property int $id
+ * @property string $id
  * @property string $sku
  * @property string $name
  * @property string|null $description
+ * @property AsUri|null $image_url
  * @property numeric|null $price
  * @property numeric|null $cost
  * @property int|null $stock_qtty
  * @property bool|null $is_active
- * @property int $category_id
+ * @property string $category_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Category $category
@@ -36,6 +39,7 @@ use Illuminate\Support\Carbon;
  * @method static Builder<static>|Product whereCreatedAt($value)
  * @method static Builder<static>|Product whereDescription($value)
  * @method static Builder<static>|Product whereId($value)
+ * @method static Builder<static>|Product whereImageUrl($value)
  * @method static Builder<static>|Product whereIsActive($value)
  * @method static Builder<static>|Product whereName($value)
  * @method static Builder<static>|Product wherePrice($value)
@@ -46,7 +50,10 @@ use Illuminate\Support\Carbon;
  */
 class Product extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUuids;
+
+    protected $keyType      = 'string';
+    public    $incrementing = false;
 
     protected $fillable = [
         'sku',
@@ -57,14 +64,15 @@ class Product extends Model
         'stock_qtty',
         'is_active',
         'category_id',
+        'image_url',
     ];
 
     protected $casts = [
-        'price'       => 'decimal:2',
-        'cost'        => 'decimal:2',
-        'stock_qtty'  => 'integer',
-        'is_active'   => 'boolean',
-        'category_id' => 'integer',
+        'price'      => 'decimal:2',
+        'cost'       => 'decimal:2',
+        'stock_qtty' => 'integer',
+        'is_active'  => 'boolean',
+        'image_url'  => AsUri::class,
     ];
 
     public function category(): BelongsTo

@@ -14,6 +14,7 @@ class TransactionItemRequest extends FormRequest
             'qtty'           => ['required', 'integer'],
             'unit_price'     => ['required', 'numeric'],
             'discount'       => ['required', 'numeric'],
+            'discount_type'  => ['required', 'integer'],
             'subtotal'       => ['required', 'numeric'],
         ];
     }
